@@ -31,21 +31,21 @@ const Navbar: React.FC = () => {
 
   const navItems = user
     ? [
-        { title: "Dashboard", href: "/dashboard" },
-        { title: "Task Board", href: "/task-board" },
-        { title: "Projects", href: "/projects" },
-        user.role === "admin" ? { title: "Admin", href: "/admin" } : null,
+        { title: "대시보드", href: "/dashboard" },
+        { title: "작업 보드", href: "/task-board" },
+        { title: "프로젝트", href: "/projects" },
+        user.role === "admin" ? { title: "관리자", href: "/admin" } : null,
       ].filter(Boolean)
     : [
-        { title: "Features", href: "/#features" },
-        { title: "Pricing", href: "/#pricing" },
-        { title: "About", href: "/#about" },
+        { title: "서비스 소개", href: "/#features" },
+        { title: "가격 안내", href: "/#pricing" },
+        { title: "회사 소개", href: "/#about" },
       ];
 
   const userNavItems = [
-    { title: "Profile", href: "/profile" },
-    { title: "Settings", href: "/settings" },
-    { title: "Logout", onClick: logout },
+    { title: "프로필", href: "/profile" },
+    { title: "설정", href: "/settings" },
+    { title: "로그아웃", onClick: logout },
   ];
 
   return (
@@ -64,12 +64,12 @@ const Navbar: React.FC = () => {
             <div
               className="bg-primary text-white h-8 w-8 rounded-lg flex items-center justify-center"
             >
-              P
+              R
             </div>
             <span
               className="font-semibold text-lg"
             >
-              PlanPulse
+              Refinery
             </span>
           </Link>
 
@@ -155,10 +155,10 @@ const Navbar: React.FC = () => {
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost">Log in</Button>
+                  <Button variant="ghost">로그인</Button>
                 </Link>
                 <Link to="/login?signup=true">
-                  <Button className="rounded-full">Sign up</Button>
+                  <Button className="rounded-full">회원가입</Button>
                 </Link>
               </>
             )}
@@ -230,11 +230,11 @@ const Navbar: React.FC = () => {
                   <div className="h-px bg-gray-100 my-2"></div>
                   <Link to="/login">
                     <Button variant="ghost" className="w-full justify-start">
-                      Log in
+                      로그인
                     </Button>
                   </Link>
                   <Link to="/login?signup=true">
-                    <Button className="w-full mt-2">Sign up</Button>
+                    <Button className="w-full mt-2">회원가입</Button>
                   </Link>
                 </>
               )}

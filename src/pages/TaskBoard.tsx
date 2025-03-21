@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,15 @@ import {
   ChevronDown, 
   Mail, 
   AlertCircle,
-  PlusCircle
+  PlusCircle,
+  Clock,
+  Paperclip,
+  X,
+  ChevronUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import AIChatbot from "@/components/ai/AIChatbot";
 
 const TaskBoard = () => {
   const { user } = useAuth();
@@ -27,6 +33,8 @@ const TaskBoard = () => {
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState("medium");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [openTaskIds, setOpenTaskIds] = useState<number[]>([]);
+  const [showChatbot, setShowChatbot] = useState(false);
   
   // Mock task data with comments
   const [tasks, setTasks] = useState([
@@ -37,6 +45,7 @@ const TaskBoard = () => {
       status: "todo",
       priority: "high",
       assignee: "MK",
+      dueDate: "2023-12-10",
       comments: [
         { id: 1, user: "관리자", text: "집행 요약은 2페이지 내외로 작성해 주세요.", timestamp: "2023-11-15 14:30" }
       ],
@@ -49,6 +58,7 @@ const TaskBoard = () => {
       status: "todo",
       priority: "low",
       assignee: "JP",
+      dueDate: "2023-12-15",
       comments: [],
       files: []
     },
@@ -59,6 +69,7 @@ const TaskBoard = () => {
       status: "in-progress",
       priority: "high",
       assignee: "JP",
+      dueDate: "2023-12-05",
       comments: [
         { id: 2, user: "고객", text: "최근 경쟁사 동향도 포함해 주세요.", timestamp: "2023-11-16 10:15" },
         { id: 3, user: "관리자", text: "네, 반영하겠습니다.", timestamp: "2023-11-16 11:30" }
@@ -72,6 +83,7 @@ const TaskBoard = () => {
       status: "in-progress",
       priority: "medium",
       assignee: "EL",
+      dueDate: "2023-12-20",
       comments: [],
       files: []
     },
@@ -82,6 +94,7 @@ const TaskBoard = () => {
       status: "review",
       priority: "medium",
       assignee: "MK",
+      dueDate: "2023-12-08",
       comments: [],
       files: []
     },
@@ -92,6 +105,7 @@ const TaskBoard = () => {
       status: "completed",
       priority: "medium",
       assignee: "HJ",
+      dueDate: "2023-11-30",
       comments: [],
       files: []
     },
@@ -102,10 +116,19 @@ const TaskBoard = () => {
       status: "completed",
       priority: "low",
       assignee: "EL",
+      dueDate: "2023-11-25",
       comments: [],
       files: []
     }
   ]);
+
+  const toggleTaskComments = (taskId: number) => {
+    setOpenTaskIds(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId) 
+        : [...prev, taskId]
+    );
+  };
 
   const addComment = (taskId: number) => {
     if (!commentText.trim()) {
@@ -202,6 +225,7 @@ const TaskBoard = () => {
       status: "todo",
       priority: newTaskPriority,
       assignee: user?.name?.substring(0, 2) || "신규",
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       comments: [],
       files: []
     };
@@ -215,6 +239,24 @@ const TaskBoard = () => {
     toast({
       title: "새 태스크가 생성되었습니다",
       description: "모든 담당자에게 이메일 알림이 전송되었습니다.",
+    });
+  };
+
+  const removeFile = (taskId: number, fileName: string) => {
+    const updatedTasks = tasks.map(task => {
+      if (task.id === taskId) {
+        return {
+          ...task,
+          files: task.files.filter(file => file !== fileName)
+        };
+      }
+      return task;
+    });
+    
+    setTasks(updatedTasks);
+    toast({
+      title: "파일 삭제 완료",
+      description: `${fileName} 파일이 삭제되었습니다.`,
     });
   };
 
@@ -237,26 +279,45 @@ const TaskBoard = () => {
     }
   };
 
+  const isTaskOverdue = (dueDate: string) => {
+    return new Date(dueDate) < new Date();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-start mb-8">
             <div>
               <h1 className="text-3xl font-bold mb-2">
                 작업 보드
               </h1>
               <p className="text-gray-600">
-                사업계획 및 입찰 문서 작업을 관리하고 추적하세요
+                사업계획, 입찰 문서 작업을 관리하고 추적하세요
               </p>
             </div>
-            <Button onClick={() => setShowNewTaskDialog(true)} className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" />
-              새 태스크
-            </Button>
+            <div className="flex space-x-3">
+              <Button 
+                onClick={() => setShowChatbot(!showChatbot)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                {showChatbot ? "AI 챗봇 닫기" : "AI 챗봇 열기"}
+              </Button>
+              <Button onClick={() => setShowNewTaskDialog(true)} className="flex items-center gap-2">
+                <PlusCircle className="h-4 w-4" />
+                새 태스크 추가
+              </Button>
+            </div>
           </div>
+
+          {showChatbot && (
+            <div className="mb-8">
+              <AIChatbot />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {["todo", "in-progress", "review", "completed"].map((status) => (
@@ -273,146 +334,181 @@ const TaskBoard = () => {
                 {tasks
                   .filter(task => task.status === status)
                   .map(task => (
-                    <div 
+                    <Collapsible 
                       key={task.id} 
-                      className="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
+                      open={openTaskIds.includes(task.id)}
+                      onOpenChange={() => {}}
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
                     >
-                      <h4 className="font-medium text-sm mb-2">{task.title}</h4>
-                      <p className="text-xs text-gray-500 mb-3">
-                        {task.description}
-                      </p>
-                      
-                      {task.files.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-xs text-gray-600 mb-1">첨부 파일: {task.files.length}개</p>
-                          <div className="flex flex-wrap gap-1">
-                            {task.files.map((fileName, idx) => (
-                              <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                                {fileName}
-                              </span>
-                            ))}
+                      <div className="p-4">
+                        <h4 className="font-medium text-sm mb-2">{task.title}</h4>
+                        <p className="text-xs text-gray-500 mb-3">
+                          {task.description}
+                        </p>
+                        
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex items-center gap-2">
+                            {getPriorityLabel(task.priority)}
+                            <span className={`text-xs flex items-center gap-1 ${isTaskOverdue(task.dueDate) ? 'text-red-500' : 'text-gray-500'}`}>
+                              <Clock className="h-3 w-3" />
+                              {task.dueDate}
+                            </span>
                           </div>
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-1">
-                          {getPriorityLabel(task.priority)}
-                        </div>
-                        <div className="flex gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7"
-                                onClick={() => setSelectedTaskId(task.id)}
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>{task.title} - 댓글</DialogTitle>
-                              </DialogHeader>
-                              <div className="max-h-[300px] overflow-y-auto mb-4">
-                                {task.comments.length > 0 ? (
-                                  <div className="space-y-3">
-                                    {task.comments.map(comment => (
-                                      <div key={comment.id} className="bg-gray-50 p-3 rounded-lg">
-                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                          <span className="font-medium">{comment.user}</span>
-                                          <span>{comment.timestamp}</span>
-                                        </div>
-                                        <p className="text-sm">{comment.text}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-center text-gray-500 py-4">아직 댓글이 없습니다.</p>
-                                )}
-                              </div>
-                              <div className="space-y-3">
-                                <Textarea
-                                  placeholder="댓글을 작성하세요..."
-                                  value={commentText}
-                                  onChange={(e) => setCommentText(e.target.value)}
-                                />
-                                <div className="flex justify-between">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => sendEmailNotification(task.id)}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <Mail className="h-3 w-3" />
-                                    이메일 알림
-                                  </Button>
-                                  <Button 
-                                    size="sm"
-                                    onClick={() => addComment(task.id)}
-                                  >
-                                    댓글 추가
-                                  </Button>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7"
-                                onClick={() => setSelectedTaskId(task.id)}
-                              >
-                                <Upload className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>{task.title} - 파일 업로드</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="grid w-full max-w-sm items-center gap-1.5">
-                                  <Input
-                                    type="file"
-                                    multiple
-                                    onChange={handleFileChange}
-                                  />
-                                  <p className="text-xs text-gray-500">
-                                    최대 5MB까지 업로드 가능합니다.
-                                  </p>
-                                </div>
-                                
-                                {selectedFiles.length > 0 && (
-                                  <div>
-                                    <p className="text-sm font-medium mb-2">선택된 파일:</p>
-                                    <ul className="text-sm space-y-1">
-                                      {selectedFiles.map((file, idx) => (
-                                        <li key={idx} className="text-gray-600">{file.name}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                                
-                                <Button 
-                                  onClick={() => uploadFiles(task.id)}
-                                  className="w-full"
-                                >
-                                  업로드
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          
                           <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs">
                             {task.assignee}
                           </div>
                         </div>
+                        
+                        {task.files.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                              <Paperclip className="h-3 w-3" />
+                              첨부 파일: {task.files.length}개
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {task.files.map((fileName, idx) => (
+                                <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded-full flex items-center">
+                                  {fileName}
+                                  <button
+                                    onClick={() => removeFile(task.id, fileName)}
+                                    className="ml-1 text-gray-400 hover:text-red-500"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-between items-center">
+                          <div>
+                            {task.comments.length > 0 && (
+                              <span className="text-xs text-gray-500 flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                댓글 {task.comments.length}개
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <CollapsibleTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7"
+                                onClick={() => toggleTaskComments(task.id)}
+                              >
+                                {openTaskIds.includes(task.id) ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </CollapsibleTrigger>
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7"
+                                  onClick={() => setSelectedTaskId(task.id)}
+                                >
+                                  <Upload className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>{task.title} - 파일 업로드</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="grid w-full max-w-sm items-center gap-1.5">
+                                    <Input
+                                      type="file"
+                                      multiple
+                                      onChange={handleFileChange}
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                      최대 5MB까지 업로드 가능합니다.
+                                    </p>
+                                  </div>
+                                  
+                                  {selectedFiles.length > 0 && (
+                                    <div>
+                                      <p className="text-sm font-medium mb-2">선택된 파일:</p>
+                                      <ul className="text-sm space-y-1">
+                                        {selectedFiles.map((file, idx) => (
+                                          <li key={idx} className="text-gray-600">{file.name}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  
+                                  <Button 
+                                    onClick={() => uploadFiles(task.id)}
+                                    className="w-full"
+                                  >
+                                    업로드
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                      
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 border-t border-gray-100 pt-2">
+                          {task.comments.length > 0 ? (
+                            <div className="space-y-2">
+                              {task.comments.map(comment => (
+                                <div key={comment.id} className="bg-gray-50 p-2 rounded-lg">
+                                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                    <span className="font-medium">{comment.user}</span>
+                                    <span>{comment.timestamp}</span>
+                                  </div>
+                                  <p className="text-sm">{comment.text}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-center text-gray-500 py-2 text-xs">댓글이 없습니다.</p>
+                          )}
+                          
+                          <div className="mt-3 flex space-x-2">
+                            <Input
+                              placeholder="댓글 작성..."
+                              className="text-xs h-8"
+                              value={commentText}
+                              onChange={(e) => setCommentText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  addComment(task.id);
+                                }
+                              }}
+                            />
+                            <Button 
+                              size="sm"
+                              className="h-8"
+                              onClick={() => addComment(task.id)}
+                            >
+                              추가
+                            </Button>
+                          </div>
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => sendEmailNotification(task.id)}
+                            className="flex items-center gap-1 mt-2 w-full justify-center"
+                          >
+                            <Mail className="h-3 w-3" />
+                            이메일 알림 보내기
+                          </Button>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   ))}
               </div>
             ))}
