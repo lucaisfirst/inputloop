@@ -1,6 +1,4 @@
-
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import { 
   Users, 
   CreditCard, 
@@ -14,7 +12,8 @@ import {
   Edit,
   UserPlus,
   Check,
-  X
+  X,
+  MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
