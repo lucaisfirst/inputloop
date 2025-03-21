@@ -1,19 +1,12 @@
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Bot, Send, RefreshCw, Plus, Download, Upload, X } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-
-interface Message {
-  id: number;
-  type: "user" | "ai";
-  content: string;
-  timestamp: string;
-}
+import { Message } from "./types";
+import MessageList from "./MessageList";
+import ChatInput from "./ChatInput";
+import ChatHeader from "./ChatHeader";
 
 const AIChatbot = () => {
   const { toast } = useToast();
@@ -25,42 +18,26 @@ const AIChatbot = () => {
       timestamp: new Date().toLocaleString()
     }
   ]);
-  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setUploadedFiles(prev => [...prev, ...newFiles]);
-      
-      toast({
-        title: "파일 업로드 완료",
-        description: `${newFiles.length}개의 파일이 분석 대기 중입니다.`,
-      });
-    }
-  };
-
-  const sendMessage = () => {
-    if (!inputMessage.trim()) return;
-
+  const sendMessage = (text: string) => {
     // 사용자 메시지 추가
     const newMessage: Message = {
       id: Date.now(),
       type: "user",
-      content: inputMessage,
+      content: text,
       timestamp: new Date().toLocaleString()
     };
     
     setMessages(prev => [...prev, newMessage]);
-    setInputMessage("");
     setIsLoading(true);
 
     // AI 응답을 시뮬레이션 (실제로는 API 호출)
     setTimeout(() => {
       // 질문에 따른 응답 로직 (실제로는 RAG 기반 응답)
       let aiResponse = "";
-      const userQuery = inputMessage.toLowerCase();
+      const userQuery = text.toLowerCase();
       
       if (userQuery.includes("사업계획서") && userQuery.includes("작성")) {
         aiResponse = "사업계획서 작성은 크게 7단계로 나뉩니다: 1) 집행 요약, 2) 회사 소개, 3) 시장 분석, 4) 제품/서비스 설명, 5) 마케팅 전략, 6) 운영 계획, 7) 재무 예측입니다. 업로드하신 기존 문서를 분석해 보니 특히 시장 분석 부분이 잘 작성되어 있습니다. 더 구체적인 부분에 대해 질문해 주시면 도움드리겠습니다.";
@@ -88,13 +65,6 @@ const AIChatbot = () => {
     }, 1500);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
   const startNewConversation = () => {
     setMessages([
       {
@@ -111,124 +81,21 @@ const AIChatbot = () => {
     });
   };
 
-  const removeFile = (fileName: string) => {
-    setUploadedFiles(prev => prev.filter(file => file.name !== fileName));
-    toast({
-      title: "파일 삭제됨",
-      description: `${fileName} 파일이 삭제되었습니다.`,
-    });
-  };
-
   return (
     <Card className="relative flex flex-col h-[500px] shadow-md">
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center text-lg font-semibold">
-            <Bot className="mr-2 h-5 w-5" />
-            Refinery AI 어시스턴트
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => document.getElementById('file-upload')?.click()}
-            >
-              <Upload className="h-4 w-4" />
-              <input
-                id="file-upload"
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={startNewConversation}
-              className="h-8 w-8"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          업로드된 기업 자료와 문서를 바탕으로 질문에 답변해 드립니다.
-        </p>
-        
-        {uploadedFiles.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {uploadedFiles.map((file, idx) => (
-              <Badge key={idx} variant="secondary" className="flex items-center gap-1 px-2 py-1">
-                <span className="text-xs truncate max-w-[120px]">{file.name}</span>
-                <button 
-                  onClick={() => removeFile(file.name)}
-                  className="text-gray-400 hover:text-red-500"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
+        <ChatHeader 
+          uploadedFiles={uploadedFiles} 
+          setUploadedFiles={setUploadedFiles}
+          onNewConversation={startNewConversation}
+        />
       </CardHeader>
       <Separator />
       <CardContent className="flex-grow overflow-y-auto p-4 space-y-4 my-2">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.type === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`max-w-[85%] rounded-lg px-4 py-2 ${
-                message.type === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              <div className="mb-1 text-xs opacity-70">
-                {message.type === "user" ? "나" : "AI 어시스턴트"} • {message.timestamp}
-              </div>
-              <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-lg px-4 py-2 bg-muted text-muted-foreground">
-              <div className="flex items-center">
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                <span>답변 생성 중...</span>
-              </div>
-            </div>
-          </div>
-        )}
+        <MessageList messages={messages} isLoading={isLoading} />
       </CardContent>
       <CardFooter className="p-3 border-t">
-        <div className="flex space-x-2 w-full">
-          <Textarea
-            placeholder="질문을 입력하세요..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="min-h-[60px] resize-none"
-            disabled={isLoading}
-          />
-          <Button 
-            className="self-end" 
-            size="icon"
-            disabled={!inputMessage.trim() || isLoading}
-            onClick={sendMessage}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-        <p className="text-xs text-gray-500 mt-2 w-full">
-          Shift + Enter로 줄바꿈, Enter로 전송합니다.
-        </p>
+        <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
       </CardFooter>
     </Card>
   );
